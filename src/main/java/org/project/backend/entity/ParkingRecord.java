@@ -18,8 +18,9 @@ public class ParkingRecord {
   @Column(name = "vehicle_type", nullable = false)
   private String vehicleType;
 
-  @Column(name = "zone", nullable = false)
-  private String zone;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "zone_id", nullable = false)
+  private ParkingZone zone;
 
   @Column(name = "check_in_time", nullable = false)
   private LocalDateTime checkInTime;
@@ -27,21 +28,17 @@ public class ParkingRecord {
   @Column(name = "check_out_time")
   private LocalDateTime checkOutTime;
 
-  @Column(name = "fee")
-  private Double fee;
-
   public ParkingRecord() {
   }
 
-  public ParkingRecord(String id, String licensePlate, String vehicleType, String zone,
-      LocalDateTime checkInTime, LocalDateTime checkOutTime, Double fee) {
+  public ParkingRecord(String id, String licensePlate, String vehicleType, ParkingZone zone,
+      LocalDateTime checkInTime, LocalDateTime checkOutTime) {
     this.id = id;
     this.licensePlate = licensePlate;
     this.vehicleType = vehicleType;
     this.zone = zone;
     this.checkInTime = checkInTime;
     this.checkOutTime = checkOutTime;
-    this.fee = fee;
   }
 
   public String getId() {
@@ -68,11 +65,11 @@ public class ParkingRecord {
     this.vehicleType = vehicleType;
   }
 
-  public String getZone() {
+  public ParkingZone getZone() {
     return zone;
   }
 
-  public void setZone(String zone) {
+  public void setZone(ParkingZone zone) {
     this.zone = zone;
   }
 
@@ -90,13 +87,5 @@ public class ParkingRecord {
 
   public void setCheckOutTime(LocalDateTime checkOutTime) {
     this.checkOutTime = checkOutTime;
-  }
-
-  public Double getFee() {
-    return fee;
-  }
-
-  public void setFee(Double fee) {
-    this.fee = fee;
   }
 }

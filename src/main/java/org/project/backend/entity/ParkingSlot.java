@@ -11,23 +11,20 @@ public class ParkingSlot {
   @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
 
-  @Column(name = "zone", nullable = false)
-  private String zone;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "zone_id", nullable = false)
+  private ParkingZone zone;
 
   @Column(name = "is_occupied", nullable = false)
   private boolean isOccupied;
 
-  @Column(name = "total_slots", nullable = false)
-  private int totalSlots;
-
   public ParkingSlot() {
   }
 
-  public ParkingSlot(String id, String zone, boolean isOccupied, int totalSlots) {
+  public ParkingSlot(String id, ParkingZone zone, boolean isOccupied) {
     this.id = id;
     this.zone = zone;
     this.isOccupied = isOccupied;
-    this.totalSlots = totalSlots;
   }
 
   public String getId() {
@@ -38,11 +35,11 @@ public class ParkingSlot {
     this.id = id;
   }
 
-  public String getZone() {
+  public ParkingZone getZone() {
     return zone;
   }
 
-  public void setZone(String zone) {
+  public void setZone(ParkingZone zone) {
     this.zone = zone;
   }
 
@@ -52,13 +49,5 @@ public class ParkingSlot {
 
   public void setOccupied(boolean occupied) {
     isOccupied = occupied;
-  }
-
-  public int getTotalSlots() {
-    return totalSlots;
-  }
-
-  public void setTotalSlots(int totalSlots) {
-    this.totalSlots = totalSlots;
   }
 }
