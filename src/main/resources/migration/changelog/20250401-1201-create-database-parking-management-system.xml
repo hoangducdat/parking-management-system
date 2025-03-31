@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+  <changeSet id="001" author="datHD">
+    <createTable tableName="parking_records">
+      <column name="id" type="varchar(36)" defaultValueComputed="UUID()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="license_plate" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="vehicle_type" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="zone" type="varchar(10)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="check_in_time" type="timestamp">
+        <constraints nullable="false"/>
+      </column>
+      <column name="check_out_time" type="timestamp"/>
+      <column name="fee" type="double"/>
+    </createTable>
+
+    <createTable tableName="parking_slots">
+      <column name="id" type="varchar(36)" defaultValueComputed="UUID()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="zone" type="varchar(10)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="is_occupied" type="boolean">
+        <constraints nullable="false"/>
+      </column>
+      <column name="total_slots" type="int">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+
+    <createTable tableName="users">
+      <column name="id" type="varchar(36)" defaultValueComputed="UUID()">
+        <constraints primaryKey="true" nullable="false"/>
+      </column>
+      <column name="username" type="varchar(100)">
+        <constraints nullable="false" unique="true"/>
+      </column>
+      <column name="password" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="role" type="varchar(50)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+</databaseChangeLog>
