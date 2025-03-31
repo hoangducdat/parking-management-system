@@ -1,4 +1,4 @@
-# TÀI LIỆU DỰ ÁN: QUẢN LÝ NHÀ XE (CẬP NHẬT)
+# TÀI LIỆU DỰ ÁN: QUẢN LÝ NHÀ XE
 
 ## 1. Giới thiệu về dự án
 Dự án "Quản lý nhà xe" là một hệ thống phần mềm giúp quản lý việc gửi và lấy xe tại một bãi đỗ xe. Mục tiêu là tự động hóa các công việc như ghi nhận xe vào/ra, tính phí gửi xe, theo dõi số lượng chỗ trống trong từng khu vực, và cung cấp thống kê cho người quản lý. Hệ thống này phù hợp cho các bãi đỗ xe có nhiều khu vực (ví dụ: khu A, khu B) như ở chung cư, siêu thị, hoặc trường học.
