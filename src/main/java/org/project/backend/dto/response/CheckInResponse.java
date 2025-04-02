@@ -1,52 +1,31 @@
-package org.project.backend.entity;
+package org.project.backend.dto.response;
 
-import jakarta.persistence.*;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.time.LocalDateTime;
 
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+public class CheckInResponse {
 
-@Entity
-@Table(name = "parking_records")
-public class ParkingRecord {
-
-  @Id
-  @GeneratedValue(strategy = GenerationType.UUID)
   private String id;
-
-  @Column(name = "license_plate", nullable = false)
   private String licensePlate;
-
-  @Column(name = "vehicle_type", nullable = false)
   private String vehicleType;
-
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "zone_id", nullable = false)
-  private ParkingZone zone;
-
-  @Column(name = "check_in_time", nullable = false)
+  private String zoneName;
   private LocalDateTime checkInTime;
-
-  @Column(name = "check_out_time")
   private LocalDateTime checkOutTime;
 
-  public ParkingRecord(String licensePlate, String vehicleType, ParkingZone zone, LocalDateTime now) {
-    this.licensePlate = licensePlate;
-    this.vehicleType = vehicleType;
-    this.zone = zone;
-    this.checkInTime = now;
+  public CheckInResponse() {
   }
 
-  public ParkingRecord(String id, String licensePlate, String vehicleType, ParkingZone zone,
+  public CheckInResponse(String id, String licensePlate, String vehicleType, String zoneName,
       LocalDateTime checkInTime, LocalDateTime checkOutTime) {
     this.id = id;
     this.licensePlate = licensePlate;
     this.vehicleType = vehicleType;
-    this.zone = zone;
+    this.zoneName = zoneName;
     this.checkInTime = checkInTime;
     this.checkOutTime = checkOutTime;
-  }
-
-  public ParkingRecord() {
-
   }
 
   public String getId() {
@@ -73,12 +52,12 @@ public class ParkingRecord {
     this.vehicleType = vehicleType;
   }
 
-  public ParkingZone getZone() {
-    return zone;
+  public String getZoneName() {
+    return zoneName;
   }
 
-  public void setZone(ParkingZone zone) {
-    this.zone = zone;
+  public void setZoneName(String zoneName) {
+    this.zoneName = zoneName;
   }
 
   public LocalDateTime getCheckInTime() {
