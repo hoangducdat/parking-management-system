@@ -1,7 +1,6 @@
 package org.project.backend.entity;
 
 import jakarta.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -20,7 +19,7 @@ public class User {
   @Column(name = "role", nullable = false)
   private String role;
 
-  public User() {
+  public User(String username, String encode, String role) {
   }
 
   public User(String id, String username, String password, String role) {
@@ -28,6 +27,10 @@ public class User {
     this.username = username;
     this.password = password;
     this.role = role;
+  }
+
+  public User() {
+
   }
 
   public String getId() {
