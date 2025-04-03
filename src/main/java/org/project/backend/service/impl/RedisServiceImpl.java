@@ -13,20 +13,13 @@ public class RedisServiceImpl implements RedisService {
     public RedisServiceImpl(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
-
     @Override
-    public void setValue(String key, String value, long ttl) {
-        redisTemplate.opsForValue().set(key, value, ttl, TimeUnit.MILLISECONDS);
+    public void save(String key, Object value, long timeout, TimeUnit unit) {
+        redisTemplate.opsForValue().set(key, value.toString(), timeout, unit);
     }
-
     @Override
-    public boolean hasKey(String key) {
-        return Boolean.TRUE.equals(redisTemplate.hasKey(key));
-    }
-
-    @Override
-    public void setValue(String key, String value) {
-        redisTemplate.opsForValue().set(key, value);
+    public void save(String key, Object value) {
+        redisTemplate.opsForValue().set(key, value.toString());
     }
 
     @Override
@@ -34,6 +27,14 @@ public class RedisServiceImpl implements RedisService {
         return redisTemplate.opsForValue().get(key);
     }
 
+    @Override
+    public void increment(String key, long delta) {
+        redisTemplate.opsForValue().increment(key, delta);
+    }
+    @Override
+    public void decrement(String key, long delta) {
+        redisTemplate.opsForValue().decrement(key, delta);
+    }
     @Override
     public void deleteKey(String key) {
         redisTemplate.delete(key);

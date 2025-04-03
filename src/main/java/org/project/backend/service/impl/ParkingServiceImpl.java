@@ -21,9 +21,9 @@ import org.project.backend.repository.ParkingZoneRepository;
 import org.project.backend.repository.PaymentLogRepository;
 import org.project.backend.repository.UserRepository;
 import org.project.backend.service.ParkingService;
+import org.project.backend.service.RedisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,16 +40,18 @@ public class ParkingServiceImpl implements ParkingService {
   private final ParkingZoneRepository parkingZoneRepository;
   private final PaymentLogRepository paymentLogRepository;
   private final UserRepository userRepository;
-  private final RedisTemplate<String, String> redisTemplate;
+  private final RedisService redisService;
 
   public ParkingServiceImpl(ParkingRecordRepository parkingRecordRepository,
       ParkingZoneRepository parkingZoneRepository,
-      PaymentLogRepository paymentLogRepository,UserRepository userRepository, RedisTemplate<String, String> redisTemplate) {
+      PaymentLogRepository paymentLogRepository,
+      UserRepository userRepository,
+      RedisService redisService) {
     this.parkingRecordRepository = parkingRecordRepository;
     this.parkingZoneRepository = parkingZoneRepository;
     this.paymentLogRepository = paymentLogRepository;
     this.userRepository = userRepository;
-    this.redisTemplate = redisTemplate;
+    this.redisService = redisService;
   }
 
   @Override
@@ -73,14 +75,14 @@ public class ParkingServiceImpl implements ParkingService {
       ParkingZone zone = zones.get(RANDOM.nextInt(zones.size()));
       String redisKey = Constants.ZONE_COUNT_PREFIX + zone.getId() + ":current_count";
       log.debug("Retrieving current count from Redis for zone {} with key {}", zone.getId(), redisKey);
-      String currentCountStr = redisTemplate.opsForValue().get(redisKey);
+      String currentCountStr = redisService.getValue(redisKey);
       int currentCount = currentCountStr != null ? Integer.parseInt(currentCountStr) : 0;
       log.debug("Zone {} has current count: {} and max slots: {}", zone.getId(), currentCount, zone.getMaxSlots());
 
       if (currentCount < zone.getMaxSlots()) {
         selectedZone = zone;
         log.info("Selected zone {} for check-in. Incrementing count in Redis", zone.getId());
-        redisTemplate.opsForValue().increment(redisKey, 1);
+        redisService.increment(redisKey, 1);
         break;
       }
     }
@@ -96,8 +98,8 @@ public class ParkingServiceImpl implements ParkingService {
     log.info("Vehicle checked in successfully with ID: {}", savedRecord.getId());
 
     String redisParkingKey = Constants.PARKING_KEY_PREFIX + savedRecord.getId();
-    log.debug("Storing zone name in Redis with key: {}", redisParkingKey);
-    redisTemplate.opsForValue().set(redisParkingKey, selectedZone.getZoneName());
+    log.debug("Storing zone name in Redis with key: {} (no TTL)", redisParkingKey);
+    redisService.save(redisParkingKey, selectedZone.getZoneName()); // Sử dụng save không TTL
     log.info("Saved vehicle successfully with license plate {} : ", licensePlate);
 
     return mapToResponse(savedRecord);
@@ -107,11 +109,6 @@ public class ParkingServiceImpl implements ParkingService {
   @Transactional
   public CheckOutResponse checkOut(CheckOutRequest request) {
     log.info("Starting check-out process for vehicle with license plate: {}", request.getLicensePlate());
-
-    if (request == null) {
-      log.error("CheckOutRequest is null");
-      throw new IllegalArgumentException("Check-out request cannot be null");
-    }
 
     String licensePlate = request.getLicensePlate();
     String operatorId = request.getOperatorId();
@@ -126,7 +123,6 @@ public class ParkingServiceImpl implements ParkingService {
       throw new IllegalArgumentException("Operator ID cannot be null");
     }
 
-    // Tìm parking record
     log.debug("Fetching parking record for license plate: {}", licensePlate);
     ParkingRecord record = parkingRecordRepository.findByLicensePlate(licensePlate);
     if (record == null) {
@@ -134,16 +130,17 @@ public class ParkingServiceImpl implements ParkingService {
       throw new VehicleNotCheckedInException("No active parking record found for license plate " + licensePlate);
     }
 
-    // Kiểm tra ticket trong Redis
     String redisParkingKey = Constants.PARKING_KEY_PREFIX + record.getId();
     log.debug("Checking Redis for parking ticket with key: {}", redisParkingKey);
-    String zoneName = redisTemplate.opsForValue().get(redisParkingKey);
+    String zoneName = redisService.getValue(redisParkingKey);
     if (zoneName == null) {
-      log.error("No active parking ticket found for vehicle: {}", licensePlate);
-      throw new InvalidTicketException("No active parking ticket found for " + licensePlate);
+      log.warn("Parking ticket not found in Redis for vehicle: {}. Checking DB instead.", licensePlate);
+      if (record.getCheckOutTime() != null) {
+        log.error("Vehicle already checked out: {}", licensePlate);
+        throw new InvalidTicketException("Vehicle " + licensePlate + " has already checked out");
+      }
     }
 
-    // Tìm user (operator)
     log.debug("Fetching operator with ID: {}", operatorId);
     User operator = userRepository.findById(operatorId)
         .orElseThrow(() -> {
@@ -151,33 +148,27 @@ public class ParkingServiceImpl implements ParkingService {
           return new RuntimeException("Operator with ID " + operatorId + " not found");
         });
 
-    // Cập nhật thời gian check-out
     LocalDateTime now = LocalDateTime.now();
     log.debug("Updating check-out time for record: {}", record.getId());
     record.setCheckOutTime(now);
     parkingRecordRepository.save(record);
     log.info("Check-out recorded for vehicle: {}", licensePlate);
 
-    // Tính phí
     double fee = calculateFee(record);
     log.debug("Calculated fee for vehicle {}: {}", licensePlate, fee);
 
-    // Lưu payment log
     PaymentLog paymentLog = new PaymentLog(record, fee, now, operator);
     log.debug("Saving payment log for record: {}", record.getId());
     PaymentLog savedPaymentLog = paymentLogRepository.save(paymentLog);
     log.info("Payment logged for vehicle: {} with fee: {}", licensePlate, fee);
 
-    // Cập nhật Redis: giảm số xe trong zone
     String redisZoneKey = Constants.ZONE_COUNT_PREFIX + record.getZone().getId() + ":current_count";
     log.debug("Decrementing zone count in Redis with key: {}", redisZoneKey);
-    redisTemplate.opsForValue().decrement(redisZoneKey, 1);
+    redisService.decrement(redisZoneKey, 1);
 
-    // Xóa ticket khỏi Redis
     log.debug("Deleting parking ticket from Redis with key: {}", redisParkingKey);
-    redisTemplate.delete(redisParkingKey);
+    redisService.deleteKey(redisParkingKey);
 
-    // Tạo response
     CheckOutResponse response = new CheckOutResponse(
         savedPaymentLog.getId(),
         savedPaymentLog.getParkingRecord().getId(),
@@ -267,31 +258,42 @@ public class ParkingServiceImpl implements ParkingService {
     LocalDateTime checkInTime = record.getCheckInTime();
     LocalDateTime checkOutTime = record.getCheckOutTime();
 
-    boolean isOvernight = isOvernight(checkInTime, checkOutTime);
-    log.debug("Is overnight parking? {}", isOvernight);
+    if (checkInTime == null || checkOutTime == null) {
+      log.debug("Check-in or check-out time is null, fee is 0");
+      return 0.0;
+    }
+
+    long hours = Duration.between(checkInTime, checkOutTime).toHours();
+    log.debug("Parking duration: {} hours", hours);
+
+    LocalDateTime midnightNextDay = checkInTime.toLocalDate().plusDays(1).atStartOfDay(); // 00h ngày hôm sau
+    boolean crossesMidnight = checkOutTime.isAfter(midnightNextDay);
 
     double fee;
     if (vehicleType.equals(Constants.VEHICLE_TYPE_MOTORBIKE)) {
-      fee = isOvernight ? Constants.MOTORBIKE_OVERNIGHT_FEE : Constants.MOTORBIKE_FEE;
+      if (hours < 24 && !crossesMidnight) {
+        fee = Constants.MOTORBIKE_FEE;
+      } else if (hours < 24 && crossesMidnight) {
+        fee = Constants.MOTORBIKE_OVERNIGHT_FEE;
+      } else {
+        long days = (hours + 23) / 24;
+        fee = Constants.MOTORBIKE_OVERNIGHT_FEE * days;
+      }
     } else if (vehicleType.equals(Constants.VEHICLE_TYPE_CAR)) {
-      fee = isOvernight ? Constants.CAR_OVERNIGHT_FEE : Constants.CAR_FEE;
+      if (hours < 24 && !crossesMidnight) {
+        fee = Constants.CAR_FEE;
+      } else if (hours < 24 && crossesMidnight) {
+        fee = Constants.CAR_OVERNIGHT_FEE;
+      } else {
+        long days = (hours + 23) / 24;
+        fee = Constants.CAR_OVERNIGHT_FEE * days;
+      }
     } else {
       fee = 0.0;
     }
-    log.debug("Fee calculated: {} for vehicle type: {}", fee, vehicleType);
-    return fee;
-  }
 
-  private boolean isOvernight(LocalDateTime checkInTime, LocalDateTime checkOutTime) {
-    if (checkInTime == null || checkOutTime == null) {
-      log.debug("Check-in or check-out time is null, not overnight");
-      return false;
-    }
-    boolean checkInBefore6PM = checkInTime.getHour() < Constants.OVERNIGHT_CHECK_IN_HOUR;
-    boolean checkOutAfter6AMNextDay = checkOutTime.isAfter(checkInTime.plusDays(1).withHour(Constants.OVERNIGHT_CHECK_OUT_HOUR).withMinute(0).withSecond(0));
-    boolean isOvernight = checkInBefore6PM && checkOutAfter6AMNextDay;
-    log.debug("Overnight check: checkInBefore6PM={}, checkOutAfter6AMNextDay={}, result={}", checkInBefore6PM, checkOutAfter6AMNextDay, isOvernight);
-    return isOvernight;
+    log.debug("Fee calculated: {} for vehicle type: {}, hours: {}, crossesMidnight: {}", fee, vehicleType, hours, crossesMidnight);
+    return fee;
   }
 }
 

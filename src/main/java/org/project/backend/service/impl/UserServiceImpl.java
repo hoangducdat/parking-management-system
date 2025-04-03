@@ -1,5 +1,6 @@
 package org.project.backend.service.impl;
 
+import java.util.concurrent.TimeUnit;
 import org.project.backend.constant.Constants;
 import org.project.backend.dto.request.LoginRequest;
 import org.project.backend.dto.request.RegisterRequest;
@@ -9,9 +10,11 @@ import org.project.backend.entity.User;
 import org.project.backend.exception.InvalidInputException;
 import org.project.backend.repository.UserRepository;
 import org.project.backend.service.JwtTokenService;
+import org.project.backend.service.RedisService;
 import org.project.backend.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,12 +26,20 @@ public class UserServiceImpl implements UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtTokenService jwtTokenService;
+  private final RedisService redisService;
+
+  @Value("${jwt.access.token.ttl}")
+  private long accessTokenTtl;
+
+  @Value("${jwt.refresh.token.ttl}")
+  private long refreshTokenTtl;
 
   public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder,
-      JwtTokenService jwtTokenService) {
+      JwtTokenService jwtTokenService, RedisService redisService) {
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtTokenService = jwtTokenService;
+    this.redisService = redisService;
   }
 
   @Override
@@ -62,6 +73,12 @@ public class UserServiceImpl implements UserService {
     log.info("Generated access token {}", accessToken);
     String refreshToken = jwtTokenService.generateRefreshToken(user);
     log.info("Generated refresh token {}", refreshToken);
+
+    long accessTokenTtlMs = TimeUnit.SECONDS.toMillis(accessTokenTtl);
+    long refreshTokenTtlMs = TimeUnit.SECONDS.toMillis(refreshTokenTtl);
+    redisService.save("ACCESS_TOKEN:" + username,accessToken,accessTokenTtlMs,TimeUnit.MILLISECONDS );
+    redisService.save("REFRESH_TOKEN:" + username,refreshToken,refreshTokenTtlMs,TimeUnit.MILLISECONDS );
+    log.info("Access Token and Refresh Token have been saved to Redis.");
 
     UserResponse userResponse = new UserResponse(user.getId(), user.getUsername(), user.getRole());
     log.info("Successfully logged in user");

@@ -67,16 +67,6 @@ public class GlobalExceptionHandler {
     return ApplicationResponse.error(HttpStatus.NOT_FOUND.value(), errorDetails);
   }
 
-  @ExceptionHandler(IllegalArgumentException.class)
-  @ResponseStatus(HttpStatus.BAD_REQUEST)
-  public ApplicationResponse<Void> handleIllegalArgumentException(IllegalArgumentException ex) {
-    log.error("Invalid request error: {}", ex.getMessage());
-    Map<String, String> errorDetails = new HashMap<>();
-    errorDetails.put("message", ex.getMessage());
-    errorDetails.put("code", "INVALID_REQUEST");
-    return ApplicationResponse.error(HttpStatus.BAD_REQUEST.value(), errorDetails);
-  }
-
   @ExceptionHandler(MethodArgumentNotValidException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ApplicationResponse<Void> handleValidationException(MethodArgumentNotValidException ex) {
