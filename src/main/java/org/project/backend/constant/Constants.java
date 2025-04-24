@@ -25,7 +25,5 @@ public final class Constants {
 
   public static final String LICENSE_PLATE_REGEX = "[0-9A9-Z-]+";
 
-  public static final int OVERNIGHT_CHECK_IN_HOUR = 18;
-  public static final int OVERNIGHT_CHECK_OUT_HOUR = 6;
 
 }

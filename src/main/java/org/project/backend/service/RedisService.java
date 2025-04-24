@@ -9,4 +9,5 @@ public interface RedisService {
     void increment(String key, long delta);
     void decrement(String key, long delta);
     void deleteKey(String key);
+
 }

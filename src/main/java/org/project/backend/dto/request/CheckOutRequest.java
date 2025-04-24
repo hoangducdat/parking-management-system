@@ -15,14 +15,10 @@ public class CheckOutRequest {
   @NotBlank(message = "License plate cannot be blank")
   private String licensePlate;
 
-  @NotBlank(message = "Operator ID cannot be blank")
-  private String operatorId;
-
   public CheckOutRequest() {
   }
 
-  public CheckOutRequest(String licensePlate, String operatorId) {
+  public CheckOutRequest(String licensePlate) {
     this.licensePlate = licensePlate;
-    this.operatorId = operatorId;
   }
 }

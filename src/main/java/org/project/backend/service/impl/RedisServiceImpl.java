@@ -1,13 +1,17 @@
 package org.project.backend.service.impl;
 
 import java.util.concurrent.TimeUnit;
+import org.project.backend.constant.Constants;
 import org.project.backend.service.RedisService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RedisServiceImpl implements RedisService {
 
+    private static final Logger log = LoggerFactory.getLogger(RedisServiceImpl.class);
     private final RedisTemplate<String, String> redisTemplate;
 
     public RedisServiceImpl(RedisTemplate<String, String> redisTemplate) {
@@ -39,4 +43,5 @@ public class RedisServiceImpl implements RedisService {
     public void deleteKey(String key) {
         redisTemplate.delete(key);
     }
+
 }

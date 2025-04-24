@@ -17,6 +17,15 @@ public class GlobalExceptionHandler {
 
   private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+  @ExceptionHandler(UsernameAlreadyExistsException.class)
+  @ResponseStatus(HttpStatus.BAD_REQUEST)
+  public ApplicationResponse<Void> handleInvalidInputException(UsernameAlreadyExistsException ex) {
+    log.error("Username error: {}", ex.getMessage());
+    Map<String, String> errorDetails = new HashMap<>();
+    errorDetails.put("message", ex.getMessage());
+    return ApplicationResponse.error(HttpStatus.BAD_REQUEST.value(), errorDetails);
+  }
+
   @ExceptionHandler(InvalidInputException.class)
   @ResponseStatus(HttpStatus.BAD_REQUEST)
   public ApplicationResponse<Void> handleInvalidInputException(InvalidInputException ex) {

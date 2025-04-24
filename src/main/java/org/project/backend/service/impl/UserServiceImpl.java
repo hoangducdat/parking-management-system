@@ -1,13 +1,12 @@
 package org.project.backend.service.impl;
 
 import java.util.concurrent.TimeUnit;
-import org.project.backend.constant.Constants;
-import org.project.backend.dto.request.LoginRequest;
 import org.project.backend.dto.request.RegisterRequest;
 import org.project.backend.dto.response.LoginResponse;
 import org.project.backend.dto.response.UserResponse;
 import org.project.backend.entity.User;
 import org.project.backend.exception.InvalidInputException;
+import org.project.backend.exception.UsernameAlreadyExistsException;
 import org.project.backend.repository.UserRepository;
 import org.project.backend.service.JwtTokenService;
 import org.project.backend.service.RedisService;
@@ -48,7 +47,7 @@ public class UserServiceImpl implements UserService {
     log.info("Start registering user");
     if (userRepository.findByUsername(request.getUsername()) != null) {
       log.error("Username is already exists");
-      throw new InvalidInputException("Username " + request.getUsername() + " already exists");
+      throw new UsernameAlreadyExistsException("Username " + request.getUsername() + " already exists");
     }
 
     User user = new User();

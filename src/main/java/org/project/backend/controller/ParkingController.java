@@ -1,6 +1,7 @@
 package org.project.backend.controller;
 
 import jakarta.validation.Valid;
+import java.time.LocalTime;
 import org.project.backend.dto.request.CheckInRequest;
 import org.project.backend.dto.request.CheckOutRequest;
 import org.project.backend.dto.request.StatsRequest;
@@ -55,8 +56,10 @@ public class ParkingController {
   @PostMapping("/stats")
   public ApplicationResponse<StatsResponse> getStats(@Valid @RequestBody StatsRequest request) {
     log.info("Get stats request: {}", request);
-    StatsResponse response = parkingService.getStats(request.getStart(), request.getEnd());
-    log.info("Get stats response {}", response);
-    return ApplicationResponse.of(200, response);
+    LocalDateTime start = request.getStart().atStartOfDay();
+    LocalDateTime end = request.getEnd().atTime(LocalTime.MAX);
+    StatsResponse stats = parkingService.getStats(start, end);
+    log.info("Get stats response {}", stats);
+    return ApplicationResponse.of(HttpStatus.OK.value(), stats);
   }
 }

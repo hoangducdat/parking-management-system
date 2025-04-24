@@ -50,9 +50,34 @@ public class JwtTokenServiceImpl implements JwtTokenService {
 
   @Override
   public String validateToken(String token) {
+    getClaims(token);
+    return getUsernameFromToken(token);
+  }
+
+  @Override
+  public String getUsernameFromToken(String token) {
+    return getClaims(token).getSubject();
+  }
+
+  @Override
+  public String getRoleFromToken(String token) {
+    return getClaims(token).get("role", String.class);
+  }
+
+  @Override
+  public boolean isTokenExpired(String token) {
     try {
-      Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token);
-      return getUsernameFromToken(token);
+      return getClaims(token).getExpiration().before(new Date());
+    } catch (InvalidInputException e) {
+      return true;
+    }
+  }
+  private Claims getClaims(String token) {
+    try {
+      return Jwts.parser()
+          .setSigningKey(jwtSecret)
+          .parseClaimsJws(token)
+          .getBody();
     } catch (SignatureException e) {
       throw new InvalidInputException("Invalid JWT signature");
     } catch (MalformedJwtException e) {
@@ -66,34 +91,4 @@ public class JwtTokenServiceImpl implements JwtTokenService {
     }
   }
 
-  @Override
-  public String getUsernameFromToken(String token) {
-    Claims claims = Jwts.parser()
-        .setSigningKey(jwtSecret)
-        .parseClaimsJws(token)
-        .getBody();
-    return claims.getSubject();
-  }
-
-  @Override
-  public String getRoleFromToken(String token) {
-    Claims claims = Jwts.parser()
-        .setSigningKey(jwtSecret)
-        .parseClaimsJws(token)
-        .getBody();
-    return claims.get("role", String.class);
-  }
-
-  @Override
-  public boolean isTokenExpired(String token) {
-    try {
-      Claims claims = Jwts.parser()
-          .setSigningKey(jwtSecret)
-          .parseClaimsJws(token)
-          .getBody();
-      return claims.getExpiration().before(new Date());
-    } catch (ExpiredJwtException e) {
-      return true;
-    }
-  }
 }

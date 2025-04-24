@@ -2,7 +2,6 @@ package org.project.backend.dto.response;
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
-
 import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,12 +16,12 @@ public class CheckOutResponse {
   private String parkingRecordId;
   private double amount;
   private LocalDateTime paymentTime;
-  private User operator;
+  private String operator;
 
   public CheckOutResponse() {
   }
 
-  public CheckOutResponse(String id, String parkingRecordId, double amount, LocalDateTime paymentTime, User operator) {
+  public CheckOutResponse(String id, String parkingRecordId, double amount, LocalDateTime paymentTime, String operator) {
     this.id = id;
     this.parkingRecordId = parkingRecordId;
     this.amount = amount;
