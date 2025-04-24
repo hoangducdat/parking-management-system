@@ -9,5 +9,6 @@ public interface RedisService {
     void increment(String key, long delta);
     void decrement(String key, long delta);
     void deleteKey(String key);
-
+    void blacklistToken(String token, long ttl);
+    boolean isTokenBlacklisted(String token);
 }

@@ -13,12 +13,12 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-public class UserController {
+public class AuthController {
 
-  private static final Logger log = LoggerFactory.getLogger(UserController.class);
+  private static final Logger log = LoggerFactory.getLogger(AuthController.class);
   private final UserService userService;
 
-  public UserController(UserService userService) {
+  public AuthController(UserService userService) {
     this.userService = userService;
   }
 
@@ -42,5 +42,11 @@ public class UserController {
     log.info("Deleting user {}", id);
     userService.delete(id);
     return ApplicationResponse.of(HttpStatus.NO_CONTENT.value(),"null");
+  }
+  @PostMapping("/logout")
+  public ApplicationResponse<String> logout() {
+    log.info("Logout user");
+    userService.logout();
+    return ApplicationResponse.of(HttpStatus.NO_CONTENT.value(),"Logout successful");
   }
 }

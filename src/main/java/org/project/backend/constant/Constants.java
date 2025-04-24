@@ -25,5 +25,7 @@ public final class Constants {
 
   public static final String LICENSE_PLATE_REGEX = "[0-9A9-Z-]+";
 
+  public static final String TOKEN_BLACKLIST_PREFIX = "blacklist:token:";
+  public static final long BLACKLIST_TTL = 30 * 24 * 60 * 60;
 
 }

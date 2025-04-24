@@ -6,6 +6,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.project.backend.service.RedisService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -22,9 +23,11 @@ import java.util.Collections;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final static Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
   private final JwtTokenService jwtTokenService;
+  private final RedisService redisService;
 
-  public JwtAuthenticationFilter(JwtTokenService jwtTokenService) {
+  public JwtAuthenticationFilter(JwtTokenService jwtTokenService, RedisService redisService) {
     this.jwtTokenService = jwtTokenService;
+    this.redisService = redisService;
   }
 
   @Override
@@ -35,6 +38,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     if (token == null) {
       log.debug("No JWT token found in request to {}", request.getRequestURI());
       filterChain.doFilter(request, response);
+      return;
+    }
+    if (redisService.isTokenBlacklisted(token)) {
+      log.warn("Token is blacklisted: {}", token);
+      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+      response.getWriter().write("Token has been blacklisted");
       return;
     }
     try {

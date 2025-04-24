@@ -1,6 +1,8 @@
 package org.project.backend.service.impl;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.concurrent.TimeUnit;
+import org.project.backend.constant.Constants;
 import org.project.backend.dto.request.RegisterRequest;
 import org.project.backend.dto.response.LoginResponse;
 import org.project.backend.dto.response.UserResponse;
@@ -14,9 +16,12 @@ import org.project.backend.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -47,7 +52,8 @@ public class UserServiceImpl implements UserService {
     log.info("Start registering user");
     if (userRepository.findByUsername(request.getUsername()) != null) {
       log.error("Username is already exists");
-      throw new UsernameAlreadyExistsException("Username " + request.getUsername() + " already exists");
+      throw new UsernameAlreadyExistsException(
+          "Username " + request.getUsername() + " already exists");
     }
 
     User user = new User();
@@ -73,10 +79,12 @@ public class UserServiceImpl implements UserService {
     String refreshToken = jwtTokenService.generateRefreshToken(user);
     log.info("Generated refresh token {}", refreshToken);
 
-    long accessTokenTtlMs = TimeUnit.SECONDS.toMillis(accessTokenTtl);
-    long refreshTokenTtlMs = TimeUnit.SECONDS.toMillis(refreshTokenTtl);
-    redisService.save("ACCESS_TOKEN:" + username,accessToken,accessTokenTtlMs,TimeUnit.MILLISECONDS );
-    redisService.save("REFRESH_TOKEN:" + username,refreshToken,refreshTokenTtlMs,TimeUnit.MILLISECONDS );
+    long accessTokenTtlMs = TimeUnit.MILLISECONDS.toMillis(accessTokenTtl);
+    long refreshTokenTtlMs = TimeUnit.MILLISECONDS.toMillis(refreshTokenTtl);
+    redisService.save("ACCESS_TOKEN:" + username, accessToken, accessTokenTtlMs,
+        TimeUnit.MILLISECONDS);
+    redisService.save("REFRESH_TOKEN:" + username, refreshToken, refreshTokenTtlMs,
+        TimeUnit.MILLISECONDS);
     log.info("Access Token and Refresh Token have been saved to Redis.");
 
     UserResponse userResponse = new UserResponse(user.getId(), user.getUsername(), user.getRole());
@@ -95,4 +103,22 @@ public class UserServiceImpl implements UserService {
     log.info("Deleted user successfully");
   }
 
+  @Override
+  public void logout() {
+    HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+    String authHeader = request.getHeader("Authorization");
+
+    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+      log.warn("No valid Bearer token found in request");
+      throw new IllegalArgumentException("Invalid or missing token");
+    }
+
+    String token = authHeader.substring(7);
+    log.info("Processing logout for token: {}", token);
+
+    redisService.blacklistToken(token, Constants.BLACKLIST_TTL);
+
+    SecurityContextHolder.clearContext();
+    log.info("User logged out successfully");
+  }
 }

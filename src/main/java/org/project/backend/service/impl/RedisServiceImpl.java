@@ -44,4 +44,15 @@ public class RedisServiceImpl implements RedisService {
         redisTemplate.delete(key);
     }
 
+    @Override
+    public void blacklistToken(String token, long ttl) {
+        log.debug("Blacklisting token: {} with TTL: {} seconds", token, ttl);
+        redisTemplate.opsForValue().set(Constants.TOKEN_BLACKLIST_PREFIX + token, "blacklisted", ttl, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public boolean isTokenBlacklisted(String token) {
+        Boolean exists = redisTemplate.hasKey(Constants.TOKEN_BLACKLIST_PREFIX + token);
+        return exists != null && exists;
+    }
 }
